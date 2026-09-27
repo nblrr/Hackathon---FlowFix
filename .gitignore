@@ -1,0 +1,14 @@
+# Konfigurasi lokal alat pengembangan
+.bob/
+
+# Catatan pembicara untuk penggunaan pribadi
+presentasi/catatan-pembicara.md
+
+# Variabel lingkungan dan kredensial lokal
+.env
+.env.*
+!.env.example
+
+# Berkas sementara sistem operasi
+.DS_Store
+Thumbs.db
