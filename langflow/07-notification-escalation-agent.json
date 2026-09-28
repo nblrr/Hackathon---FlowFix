@@ -1,0 +1,606 @@
+﻿{
+    "name":  "FLOWFIX - Notification \u0026 Escalation Agent",
+    "description":  "Mengirim notifikasi ke mahasiswa (hasil pre-check, status submission, instruksi recovery) dan ke admin/dosen (new submission ready for review, resubmission after revision). Melakukan eskalasi otomatis jika proses tidak diselesaikan dalam batas waktu. Semua notifikasi mencantumkan next action yang jelas.",
+    "icon":  null,
+    "icon_bg_color":  null,
+    "gradient":  null,
+    "data":  {
+                 "viewport":  {
+                                  "y":  0,
+                                  "zoom":  0.7,
+                                  "x":  0
+                              },
+                 "edges":  [
+                               {
+                                   "id":  "e1",
+                                   "sourceHandle":  "{\"dataType\":\"ChatInput\",\"id\":\"ci-tevt\",\"name\":\"message\",\"output_types\":[\"Message\"]}",
+                                   "source":  "ci-tevt",
+                                   "targetHandle":  "{\"fieldName\":\"trigger_event\",\"id\":\"prompt-notif\",\"inputTypes\":[\"Message\",\"Text\"],\"type\":\"str\"}",
+                                   "animated":  false,
+                                   "target":  "prompt-notif"
+                               },
+                               {
+                                   "id":  "e2",
+                                   "sourceHandle":  "{\"dataType\":\"ChatInput\",\"id\":\"ci-subdat\",\"name\":\"message\",\"output_types\":[\"Message\"]}",
+                                   "source":  "ci-subdat",
+                                   "targetHandle":  "{\"fieldName\":\"submission_data\",\"id\":\"prompt-notif\",\"inputTypes\":[\"Message\",\"Text\"],\"type\":\"str\"}",
+                                   "animated":  false,
+                                   "target":  "prompt-notif"
+                               },
+                               {
+                                   "id":  "e3",
+                                   "sourceHandle":  "{\"dataType\":\"ChatInput\",\"id\":\"ci-recip\",\"name\":\"message\",\"output_types\":[\"Message\"]}",
+                                   "source":  "ci-recip",
+                                   "targetHandle":  "{\"fieldName\":\"recipient_type\",\"id\":\"prompt-notif\",\"inputTypes\":[\"Message\",\"Text\"],\"type\":\"str\"}",
+                                   "animated":  false,
+                                   "target":  "prompt-notif"
+                               },
+                               {
+                                   "id":  "e4",
+                                   "sourceHandle":  "{\"dataType\":\"ChatInput\",\"id\":\"ci-escal\",\"name\":\"message\",\"output_types\":[\"Message\"]}",
+                                   "source":  "ci-escal",
+                                   "targetHandle":  "{\"fieldName\":\"is_escalation\",\"id\":\"prompt-notif\",\"inputTypes\":[\"Message\",\"Text\"],\"type\":\"str\"}",
+                                   "animated":  false,
+                                   "target":  "prompt-notif"
+                               },
+                               {
+                                   "id":  "e5",
+                                   "sourceHandle":  "{\"dataType\":\"Prompt Template\",\"id\":\"prompt-notif\",\"name\":\"prompt\",\"output_types\":[\"Message\"]}",
+                                   "source":  "prompt-notif",
+                                   "targetHandle":  "{\"fieldName\":\"input_value\",\"id\":\"llm-notif\",\"inputTypes\":[\"Message\",\"Text\"],\"type\":\"str\"}",
+                                   "animated":  false,
+                                   "target":  "llm-notif"
+                               },
+                               {
+                                   "id":  "e6",
+                                   "sourceHandle":  "{\"dataType\":\"OpenAIModelComponent\",\"id\":\"llm-notif\",\"name\":\"text_output\",\"output_types\":[\"Message\"]}",
+                                   "source":  "llm-notif",
+                                   "targetHandle":  "{\"fieldName\":\"input_value\",\"id\":\"co-notif\",\"inputTypes\":[\"Data\",\"JSON\",\"DataFrame\",\"Table\",\"Message\"],\"type\":\"other\"}",
+                                   "animated":  false,
+                                   "target":  "co-notif"
+                               }
+                           ],
+                 "nodes":  [
+                               {
+                                   "position":  {
+                                                    "y":  100,
+                                                    "x":  50
+                                                },
+                                   "data":  {
+                                                "node":  {
+                                                             "outputs":  [
+                                                                             {
+                                                                                 "selected":  "Message",
+                                                                                 "types":  [
+                                                                                               "Message"
+                                                                                           ],
+                                                                                 "name":  "message",
+                                                                                 "display_name":  "Chat Message"
+                                                                             }
+                                                                         ],
+                                                             "template":  {
+                                                                              "sender_name":  {
+                                                                                                  "advanced":  true,
+                                                                                                  "name":  "sender_name",
+                                                                                                  "value":  "FlowFix-Backend",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true
+                                                                                              },
+                                                                              "input_value":  {
+                                                                                                  "multiline":  true,
+                                                                                                  "info":  "Event yang memicu notifikasi, misal: pre_check_failed, submission_received, revision_requested, approved.",
+                                                                                                  "required":  false,
+                                                                                                  "name":  "input_value",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true,
+                                                                                                  "value":  "",
+                                                                                                  "display_name":  "Trigger Event"
+                                                                                              },
+                                                                              "should_store_message":  {
+                                                                                                           "advanced":  true,
+                                                                                                           "name":  "should_store_message",
+                                                                                                           "value":  true,
+                                                                                                           "type":  "bool",
+                                                                                                           "show":  true
+                                                                                                       },
+                                                                              "session_id":  {
+                                                                                                 "advanced":  true,
+                                                                                                 "name":  "session_id",
+                                                                                                 "value":  "",
+                                                                                                 "type":  "str",
+                                                                                                 "show":  true
+                                                                                             },
+                                                                              "_type":  "Component",
+                                                                              "sender":  {
+                                                                                             "advanced":  true,
+                                                                                             "name":  "sender",
+                                                                                             "value":  "User",
+                                                                                             "type":  "str",
+                                                                                             "show":  true
+                                                                                         }
+                                                                          },
+                                                             "description":  "Get chat inputs.",
+                                                             "display_name":  "Chat Input",
+                                                             "minimized":  true
+                                                         },
+                                                "id":  "ci-tevt",
+                                                "type":  "ChatInput"
+                                            },
+                                   "id":  "ci-tevt",
+                                   "type":  "genericNode"
+                               },
+                               {
+                                   "position":  {
+                                                    "y":  300,
+                                                    "x":  50
+                                                },
+                                   "data":  {
+                                                "node":  {
+                                                             "outputs":  [
+                                                                             {
+                                                                                 "selected":  "Message",
+                                                                                 "types":  [
+                                                                                               "Message"
+                                                                                           ],
+                                                                                 "name":  "message",
+                                                                                 "display_name":  "Chat Message"
+                                                                             }
+                                                                         ],
+                                                             "template":  {
+                                                                              "sender_name":  {
+                                                                                                  "advanced":  true,
+                                                                                                  "name":  "sender_name",
+                                                                                                  "value":  "FlowFix-Backend",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true
+                                                                                              },
+                                                                              "input_value":  {
+                                                                                                  "multiline":  true,
+                                                                                                  "info":  "Data ringkas pengajuan (JSON): submission_id, student name, service, status.",
+                                                                                                  "required":  false,
+                                                                                                  "name":  "input_value",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true,
+                                                                                                  "value":  "",
+                                                                                                  "display_name":  "Submission Data"
+                                                                                              },
+                                                                              "should_store_message":  {
+                                                                                                           "advanced":  true,
+                                                                                                           "name":  "should_store_message",
+                                                                                                           "value":  true,
+                                                                                                           "type":  "bool",
+                                                                                                           "show":  true
+                                                                                                       },
+                                                                              "session_id":  {
+                                                                                                 "advanced":  true,
+                                                                                                 "name":  "session_id",
+                                                                                                 "value":  "",
+                                                                                                 "type":  "str",
+                                                                                                 "show":  true
+                                                                                             },
+                                                                              "_type":  "Component",
+                                                                              "sender":  {
+                                                                                             "advanced":  true,
+                                                                                             "name":  "sender",
+                                                                                             "value":  "User",
+                                                                                             "type":  "str",
+                                                                                             "show":  true
+                                                                                         }
+                                                                          },
+                                                             "description":  "Get chat inputs.",
+                                                             "display_name":  "Chat Input",
+                                                             "minimized":  true
+                                                         },
+                                                "id":  "ci-subdat",
+                                                "type":  "ChatInput"
+                                            },
+                                   "id":  "ci-subdat",
+                                   "type":  "genericNode"
+                               },
+                               {
+                                   "position":  {
+                                                    "y":  500,
+                                                    "x":  50
+                                                },
+                                   "data":  {
+                                                "node":  {
+                                                             "outputs":  [
+                                                                             {
+                                                                                 "selected":  "Message",
+                                                                                 "types":  [
+                                                                                               "Message"
+                                                                                           ],
+                                                                                 "name":  "message",
+                                                                                 "display_name":  "Chat Message"
+                                                                             }
+                                                                         ],
+                                                             "template":  {
+                                                                              "sender_name":  {
+                                                                                                  "advanced":  true,
+                                                                                                  "name":  "sender_name",
+                                                                                                  "value":  "FlowFix-Backend",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true
+                                                                                              },
+                                                                              "input_value":  {
+                                                                                                  "multiline":  true,
+                                                                                                  "info":  "Penerima: mahasiswa / admin / dosen / semua",
+                                                                                                  "required":  false,
+                                                                                                  "name":  "input_value",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true,
+                                                                                                  "value":  "",
+                                                                                                  "display_name":  "Recipient Type"
+                                                                                              },
+                                                                              "should_store_message":  {
+                                                                                                           "advanced":  true,
+                                                                                                           "name":  "should_store_message",
+                                                                                                           "value":  true,
+                                                                                                           "type":  "bool",
+                                                                                                           "show":  true
+                                                                                                       },
+                                                                              "session_id":  {
+                                                                                                 "advanced":  true,
+                                                                                                 "name":  "session_id",
+                                                                                                 "value":  "",
+                                                                                                 "type":  "str",
+                                                                                                 "show":  true
+                                                                                             },
+                                                                              "_type":  "Component",
+                                                                              "sender":  {
+                                                                                             "advanced":  true,
+                                                                                             "name":  "sender",
+                                                                                             "value":  "User",
+                                                                                             "type":  "str",
+                                                                                             "show":  true
+                                                                                         }
+                                                                          },
+                                                             "description":  "Get chat inputs.",
+                                                             "display_name":  "Chat Input",
+                                                             "minimized":  true
+                                                         },
+                                                "id":  "ci-recip",
+                                                "type":  "ChatInput"
+                                            },
+                                   "id":  "ci-recip",
+                                   "type":  "genericNode"
+                               },
+                               {
+                                   "position":  {
+                                                    "y":  700,
+                                                    "x":  50
+                                                },
+                                   "data":  {
+                                                "node":  {
+                                                             "outputs":  [
+                                                                             {
+                                                                                 "selected":  "Message",
+                                                                                 "types":  [
+                                                                                               "Message"
+                                                                                           ],
+                                                                                 "name":  "message",
+                                                                                 "display_name":  "Chat Message"
+                                                                             }
+                                                                         ],
+                                                             "template":  {
+                                                                              "sender_name":  {
+                                                                                                  "advanced":  true,
+                                                                                                  "name":  "sender_name",
+                                                                                                  "value":  "FlowFix-Backend",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true
+                                                                                              },
+                                                                              "input_value":  {
+                                                                                                  "multiline":  true,
+                                                                                                  "info":  "true jika ini eskalasi karena SLA terlampaui, false jika notifikasi normal.",
+                                                                                                  "required":  false,
+                                                                                                  "name":  "input_value",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true,
+                                                                                                  "value":  "",
+                                                                                                  "display_name":  "Is Escalation"
+                                                                                              },
+                                                                              "should_store_message":  {
+                                                                                                           "advanced":  true,
+                                                                                                           "name":  "should_store_message",
+                                                                                                           "value":  true,
+                                                                                                           "type":  "bool",
+                                                                                                           "show":  true
+                                                                                                       },
+                                                                              "session_id":  {
+                                                                                                 "advanced":  true,
+                                                                                                 "name":  "session_id",
+                                                                                                 "value":  "",
+                                                                                                 "type":  "str",
+                                                                                                 "show":  true
+                                                                                             },
+                                                                              "_type":  "Component",
+                                                                              "sender":  {
+                                                                                             "advanced":  true,
+                                                                                             "name":  "sender",
+                                                                                             "value":  "User",
+                                                                                             "type":  "str",
+                                                                                             "show":  true
+                                                                                         }
+                                                                          },
+                                                             "description":  "Get chat inputs.",
+                                                             "display_name":  "Chat Input",
+                                                             "minimized":  true
+                                                         },
+                                                "id":  "ci-escal",
+                                                "type":  "ChatInput"
+                                            },
+                                   "id":  "ci-escal",
+                                   "type":  "genericNode"
+                               },
+                               {
+                                   "position":  {
+                                                    "y":  400,
+                                                    "x":  450
+                                                },
+                                   "data":  {
+                                                "node":  {
+                                                             "outputs":  [
+                                                                             {
+                                                                                 "selected":  "Message",
+                                                                                 "types":  [
+                                                                                               "Message"
+                                                                                           ],
+                                                                                 "name":  "prompt",
+                                                                                 "display_name":  "Prompt Message"
+                                                                             }
+                                                                         ],
+                                                             "description":  "Prompt template FlowFix.",
+                                                             "display_name":  "Notification Prompt Builder",
+                                                             "template":  {
+                                                                              "template":  {
+                                                                                               "value":  "## EVENT YANG MEMICU NOTIFIKASI\n{trigger_event}\n\n## DATA PENGAJUAN\n{submission_data}\n\n## PENERIMA NOTIFIKASI\n{recipient_type}\n\n## APAKAH INI ESKALASI?\n{is_escalation}\n\n---\nBuat notifikasi yang jelas dan actionable sesuai event dan penerima.\nKembalikan dalam format JSON yang ditentukan.",
+                                                                                               "name":  "template",
+                                                                                               "multiline":  true,
+                                                                                               "required":  true,
+                                                                                               "type":  "str",
+                                                                                               "show":  true,
+                                                                                               "display_name":  "Template"
+                                                                                           },
+                                                                              "is_escalation":  {
+                                                                                                    "value":  "",
+                                                                                                    "name":  "is_escalation",
+                                                                                                    "input_types":  [
+                                                                                                                        "Message",
+                                                                                                                        "Text"
+                                                                                                                    ],
+                                                                                                    "required":  false,
+                                                                                                    "type":  "str",
+                                                                                                    "show":  true,
+                                                                                                    "display_name":  "is_escalation"
+                                                                                                },
+                                                                              "_type":  "Component",
+                                                                              "submission_data":  {
+                                                                                                      "value":  "",
+                                                                                                      "name":  "submission_data",
+                                                                                                      "input_types":  [
+                                                                                                                          "Message",
+                                                                                                                          "Text"
+                                                                                                                      ],
+                                                                                                      "required":  false,
+                                                                                                      "type":  "str",
+                                                                                                      "show":  true,
+                                                                                                      "display_name":  "submission_data"
+                                                                                                  },
+                                                                              "trigger_event":  {
+                                                                                                    "value":  "",
+                                                                                                    "name":  "trigger_event",
+                                                                                                    "input_types":  [
+                                                                                                                        "Message",
+                                                                                                                        "Text"
+                                                                                                                    ],
+                                                                                                    "required":  false,
+                                                                                                    "type":  "str",
+                                                                                                    "show":  true,
+                                                                                                    "display_name":  "trigger_event"
+                                                                                                },
+                                                                              "recipient_type":  {
+                                                                                                     "value":  "",
+                                                                                                     "name":  "recipient_type",
+                                                                                                     "input_types":  [
+                                                                                                                         "Message",
+                                                                                                                         "Text"
+                                                                                                                     ],
+                                                                                                     "required":  false,
+                                                                                                     "type":  "str",
+                                                                                                     "show":  true,
+                                                                                                     "display_name":  "recipient_type"
+                                                                                                 }
+                                                                          }
+                                                         },
+                                                "id":  "prompt-notif",
+                                                "type":  "Prompt Template"
+                                            },
+                                   "id":  "prompt-notif",
+                                   "type":  "genericNode"
+                               },
+                               {
+                                   "position":  {
+                                                    "y":  400,
+                                                    "x":  840
+                                                },
+                                   "data":  {
+                                                "node":  {
+                                                             "outputs":  [
+                                                                             {
+                                                                                 "selected":  "Message",
+                                                                                 "types":  [
+                                                                                               "Message"
+                                                                                           ],
+                                                                                 "name":  "text_output",
+                                                                                 "display_name":  "Text Output"
+                                                                             }
+                                                                         ],
+                                                             "description":  "Google Gemini via OpenAI-compat API.",
+                                                             "display_name":  "Gemini - Notification Agent",
+                                                             "template":  {
+                                                                              "max_tokens":  {
+                                                                                                 "advanced":  true,
+                                                                                                 "name":  "max_tokens",
+                                                                                                 "value":  4096,
+                                                                                                 "type":  "int",
+                                                                                                 "show":  true
+                                                                                             },
+                                                                              "stream":  {
+                                                                                             "advanced":  true,
+                                                                                             "name":  "stream",
+                                                                                             "value":  false,
+                                                                                             "type":  "bool",
+                                                                                             "show":  true
+                                                                                         },
+                                                                              "api_key":  {
+                                                                                              "value":  "",
+                                                                                              "name":  "api_key",
+                                                                                              "password":  true,
+                                                                                              "type":  "str",
+                                                                                              "show":  true,
+                                                                                              "load_from_db":  false,
+                                                                                              "display_name":  "Google API Key"
+                                                                                          },
+                                                                              "system_message":  {
+                                                                                                     "value":  "Kamu adalah FlowFix Notification \u0026 Escalation Agent.\nTugasmu: menyusun pesan notifikasi yang jelas dan actionable untuk mahasiswa atau admin/dosen.\n\nPRINSIP:\n- Pesan untuk mahasiswa: gunakan bahasa sederhana, jelaskan apa yang harus dilakukan.\n- Pesan untuk admin: ringkas, faktual, sertakan ID pengajuan dan poin penting.\n- Setiap notifikasi harus memuat next action yang jelas.\n- Jika SLA terlampaui (escalation), naikkan prioritas dan tambahkan catatan eskalasi.\n\nOUTPUT FORMAT (JSON):\n{\n  \"notification_type\": \"student_action_required | admin_review_ready | revision_sent | approved | escalation\",\n  \"recipient\": \"mahasiswa | admin | dosen | semua\",\n  \"subject\": \"subjek notifikasi\",\n  \"message\": \"isi pesan lengkap\",\n  \"next_action\": \"tindakan yang diharapkan dari penerima\",\n  \"urgency\": \"normal | urgent\",\n  \"escalation\": { \"triggered\": true/false, \"reason\": \"alasan eskalasi atau null\" }\n}",
+                                                                                                     "name":  "system_message",
+                                                                                                     "input_types":  [
+                                                                                                                         "Message"
+                                                                                                                     ],
+                                                                                                     "type":  "str",
+                                                                                                     "show":  true,
+                                                                                                     "multiline":  true
+                                                                                                 },
+                                                                              "model_name":  {
+                                                                                                 "value":  "gemini-2.0-flash",
+                                                                                                 "name":  "model_name",
+                                                                                                 "combobox":  true,
+                                                                                                 "type":  "str",
+                                                                                                 "show":  true,
+                                                                                                 "display_name":  "Model Name"
+                                                                                             },
+                                                                              "_type":  "Component",
+                                                                              "input_value":  {
+                                                                                                  "value":  "",
+                                                                                                  "name":  "input_value",
+                                                                                                  "input_types":  [
+                                                                                                                      "Message"
+                                                                                                                  ],
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true,
+                                                                                                  "display_name":  "Input"
+                                                                                              },
+                                                                              "openai_api_base":  {
+                                                                                                      "advanced":  true,
+                                                                                                      "name":  "openai_api_base",
+                                                                                                      "value":  "https://generativelanguage.googleapis.com/v1beta/openai/",
+                                                                                                      "type":  "str",
+                                                                                                      "show":  true
+                                                                                                  },
+                                                                              "temperature":  {
+                                                                                                  "advanced":  true,
+                                                                                                  "name":  "temperature",
+                                                                                                  "value":  0.1,
+                                                                                                  "type":  "float",
+                                                                                                  "show":  true
+                                                                                              }
+                                                                          },
+                                                             "base_classes":  [
+                                                                                  "Message",
+                                                                                  "LanguageModel"
+                                                                              ]
+                                                         },
+                                                "id":  "llm-notif",
+                                                "type":  "OpenAIModelComponent"
+                                            },
+                                   "id":  "llm-notif",
+                                   "type":  "genericNode"
+                               },
+                               {
+                                   "position":  {
+                                                    "y":  400,
+                                                    "x":  1210
+                                                },
+                                   "data":  {
+                                                "node":  {
+                                                             "outputs":  [
+                                                                             {
+                                                                                 "selected":  "Message",
+                                                                                 "types":  [
+                                                                                               "Message"
+                                                                                           ],
+                                                                                 "name":  "message",
+                                                                                 "display_name":  "Output Message"
+                                                                             }
+                                                                         ],
+                                                             "template":  {
+                                                                              "sender":  {
+                                                                                             "advanced":  true,
+                                                                                             "name":  "sender",
+                                                                                             "value":  "Machine",
+                                                                                             "type":  "str",
+                                                                                             "show":  true
+                                                                                         },
+                                                                              "input_value":  {
+                                                                                                  "value":  "",
+                                                                                                  "name":  "input_value",
+                                                                                                  "input_types":  [
+                                                                                                                      "Data",
+                                                                                                                      "JSON",
+                                                                                                                      "DataFrame",
+                                                                                                                      "Table",
+                                                                                                                      "Message"
+                                                                                                                  ],
+                                                                                                  "required":  true,
+                                                                                                  "type":  "other",
+                                                                                                  "show":  true,
+                                                                                                  "display_name":  "Inputs"
+                                                                                              },
+                                                                              "sender_name":  {
+                                                                                                  "advanced":  true,
+                                                                                                  "name":  "sender_name",
+                                                                                                  "value":  "FlowFix-Notification",
+                                                                                                  "type":  "str",
+                                                                                                  "show":  true
+                                                                                              },
+                                                                              "_type":  "Component",
+                                                                              "should_store_message":  {
+                                                                                                           "advanced":  true,
+                                                                                                           "name":  "should_store_message",
+                                                                                                           "value":  true,
+                                                                                                           "type":  "bool",
+                                                                                                           "show":  true
+                                                                                                       }
+                                                                          },
+                                                             "description":  "Output hasil analisis.",
+                                                             "display_name":  "Chat Output",
+                                                             "minimized":  true
+                                                         },
+                                                "id":  "co-notif",
+                                                "type":  "ChatOutput"
+                                            },
+                                   "id":  "co-notif",
+                                   "type":  "genericNode"
+                               }
+                           ]
+             },
+    "is_component":  false,
+    "updated_at":  "2026-09-28T18:46:50+00:00",
+    "webhook":  false,
+    "endpoint_name":  null,
+    "tags":  null,
+    "locked":  false,
+    "mcp_enabled":  false,
+    "action_name":  null,
+    "action_description":  null,
+    "access_type":  "PRIVATE",
+    "flow_type":  "workflow",
+    "a2a_enabled":  false,
+    "a2a_card_overrides":  null,
+    "id":  "98494e30-660a-4611-89f5-db9a7124d48c",
+    "user_id":  "3bc88a00-5201-4344-9748-50f91225d94c",
+    "folder_id":  "3d3c3531-3b7b-4334-8299-e7f0b1969441",
+    "workspace_id":  null,
+    "name_key":  null
+}
