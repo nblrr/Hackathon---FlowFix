@@ -8,9 +8,22 @@
 .env
 .env.*
 !.env.example
+.tools/
 
 # Berkas sementara sistem operasi
 .DS_Store
 Thumbs.db
 tests/
 pengumpulan/
+
+# Application and local runtime
+.tools/
+**/vendor/
+**/node_modules/
+**/dist/
+**/*.sqlite
+**/*.sqlite-*
+!backend/tests/
+!backend/tests/**
+!frontend/tests/
+!frontend/tests/**

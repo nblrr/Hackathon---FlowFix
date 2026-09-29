@@ -1,0 +1,12 @@
+export type Fields=Record<string,string|number|null>;
+export type User={id:number;name:string;email:string;role:'student'|'reviewer'};
+export type Finding={source:string;severity:string;field:string|null;document:string|null;document_id?:number;issue:string;rule:string;evidence:string|null;evidence_verified?:boolean;suggested_action:string;page:number|null};
+export type Document={id:number;type:string;original_filename:string;version:number;is_current:boolean;extraction_status:string;extraction_metadata:{message?:string;method?:string;ocr_performed?:boolean};created_at:string};
+export type Message={id:number;speaker:string;content:string;created_at:string;metadata:{next_action?:string;error_code?:string}|null};
+export type Plan={id:number;data_version:number;source:string;status:string;is_stale:boolean;proposal:{root_cause:string;affected_fields:{field:string;current_value:string|null;proposed_value:string|null;reason:string;evidence_source:string|null;evidence:string|null;external_action:string;selectable:boolean}[];recommended_changes:string[];needs_human_review:boolean}};
+export type Precheck={id:number;data_version:number;is_stale:boolean;status:string;error_code:string|null;created_at:string;result:{status:string;summary:string;findings:Finding[];human_checks:Finding[]}|null};
+export type Review={id:number;decision:string;comment:string;data_version:number;created_at:string};
+export type Submission={id:number;status:string;data_version:number;sop_version:string;form_data:Fields;updated_at:string;documents:Document[];messages:Message[];prechecks:Precheck[];reviews:Review[];plans:Plan[];summaries:{id:number;is_stale:boolean;result:{review_summary:string;needs_attention:boolean;key_facts:{fact:string;source_document:string|null;page:number|null;source_verified:boolean}[]}}[];audit_events:{id:number;action:string;data_version:number;created_at:string}[];completeness:{findings:Finding[];human_checks:Finding[]}};
+export type SubmissionList=Pick<Submission,'id'|'status'|'form_data'|'data_version'|'updated_at'>;
+export type Configuration={fields:Record<string,string>;required_fields:string[];documents:Record<string,string>;required_documents:string[];max_upload_kb:number;sop:string;sop_version:string;debug:boolean;demo_cases:{id:string;title:string;form_data:Fields;documents:Record<string,string>}[]};
+export type Action=(path:string,body?:Record<string,unknown>,method?:string)=>Promise<boolean>;

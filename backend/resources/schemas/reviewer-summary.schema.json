@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FlowFix Reviewer Summary Output",
+  "description": "Schema for the reviewer-summary flow output. Consumer must validate against this schema before displaying to reviewer. The human reviewer makes the final decision; this summary only accelerates review.",
+  "type": "object",
+  "required": [
+    "submission_status",
+    "key_facts",
+    "precheck_findings",
+    "review_summary",
+    "needs_attention"
+  ],
+  "properties": {
+    "submission_status": {
+      "type": "string",
+      "description": "Current submission status from submission_data."
+    },
+    "key_facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "fact"
+        ],
+        "properties": {
+          "fact": {
+            "type": "string",
+            "description": "Brief factual statement about the submission."
+          },
+          "source_document": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Filename of the document this fact was drawn from, or null."
+          },
+          "page": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Page number if available, or null."
+          }
+        }
+      }
+    },
+    "precheck_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "message"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "document": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "review_summary": {
+      "type": "string",
+      "description": "One paragraph for the reviewer summarizing the submission and any concerns."
+    },
+    "needs_attention": {
+      "type": "boolean",
+      "description": "true if there are issues requiring the reviewer's attention; false if the submission appears complete and consistent."
+    }
+  },
+  "additionalProperties": false
+}

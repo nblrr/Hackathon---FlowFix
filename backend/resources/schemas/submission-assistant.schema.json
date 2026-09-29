@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FlowFix Submission Assistant Output",
+  "description": "Schema for the Submission Assistant flow output. The UI shows only the 'message' field. All other fields are for application orchestration. Consumer must parse and validate this JSON before acting on next_action.",
+  "type": "object",
+  "required": [
+    "intent",
+    "message",
+    "next_action",
+    "required_information",
+    "required_documents",
+    "missing_information"
+  ],
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": [
+        "START_SUBMISSION",
+        "CHECK_REQUIREMENTS",
+        "UPLOAD_DOCUMENT",
+        "CHECK_SUBMISSION",
+        "FIX_SUBMISSION",
+        "CHECK_STATUS",
+        "ASK_QUESTION"
+      ],
+      "description": "The detected intent of the student message."
+    },
+    "message": {
+      "type": "string",
+      "description": "Natural language response for the student. This is the ONLY field shown in the UI."
+    },
+    "next_action": {
+      "type": "string",
+      "enum": [
+        "COLLECT_SUBMISSION_INFO",
+        "SHOW_REQUIREMENTS",
+        "REQUEST_DOCUMENT_UPLOAD",
+        "RUN_DOCUMENT_PRECHECK",
+        "SHOW_PRECHECK_RESULT",
+        "SHOW_STATUS",
+        "PLAN_REVISION",
+        "ANSWER_QUESTION",
+        "REQUEST_HUMAN_REVIEW"
+      ],
+      "description": "The next action the application should take after showing the message to the student."
+    },
+    "required_information": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of field names that still need to be collected from the student. Empty array if none."
+    },
+    "required_documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of document names required for this submission type based on sop_context. Empty array if none or not yet known."
+    },
+    "missing_information": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of fields present in submission_state that have null or empty values but are required. Empty array if none."
+    },
+    "proposed_updates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "integer",
+          "null"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

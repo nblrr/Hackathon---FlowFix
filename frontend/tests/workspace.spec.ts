@@ -1,0 +1,55 @@
+import { test, expect } from '@playwright/test';
+import path from 'node:path';
+
+// These tests call the real local Laravel API and the real PDF extractor.
+// No expected AI findings are mocked or inserted by this browser suite.
+test('student workspace persists data, extracts real PDFs, and enforces reviewer separation',async({page},info)=>{
+  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('/');
+  await expect(page.getByRole('heading',{name:'Masuk ke ruang pengajuan'})).toBeVisible();
+  await page.screenshot({path:`test-results/login-${info.project.name}.png`,fullPage:true});
+  await page.getByRole('button',{name:'Masuk sebagai mahasiswa',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Asisten FlowFix'})).toBeVisible();
+  const created=page.waitForResponse(r=>r.url().endsWith('/api/submissions')&&r.request().method()==='POST');
+  await page.getByRole('button',{name:'Pengajuan baru',exact:true}).click();
+  const id=(await (await created).json()).data.id;
+  await expect(page.locator('.saved-label')).toContainText('versi 1');
+  await expect(page.getByText('Halo, aku FlowFix. Kamu ingin mengurus pengajuan apa?',{exact:true})).toBeVisible();
+  const input=page.getByLabel('Pesan untuk FlowFix');
+  await input.fill('Saya ingin mengajukan magang.');await input.press('Shift+Enter');
+  await expect(input).toHaveValue('Saya ingin mengajukan magang.\n');
+  await page.evaluate(()=>window.scrollTo(0,0));
+  await page.screenshot({path:`test-results/workspace-${info.project.name}.png`});
+  if(info.project.name==='mobile')await page.getByRole('button',{name:'Data & dokumen',exact:true}).click();
+  await page.getByText('Gunakan kasus demo sintetis',{exact:true}).click();
+  await page.getByLabel('Kasus demo').selectOption('TC01');
+  await page.getByRole('button',{name:'Pratinjau data formulir'}).click();
+  await page.getByRole('button',{name:'Simpan informasi',exact:true}).click();
+  await expect(page.locator('.facts-grid')).toContainText('Arga Pratama');
+  await expect(page.locator('.saved-label')).toContainText('versi 2');
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'Asisten FlowFix'})).toBeVisible();
+  if(info.project.name==='mobile')await page.getByRole('button',{name:'Data & dokumen',exact:true}).click();
+  await expect(page.locator('.facts-grid')).toContainText('PT Lentera Digital Nusantara');
+  await page.getByLabel('Jenis dokumen').selectOption('cv');
+  await page.locator('input[type=file]').setInputFiles(path.resolve('../FlowFix-Test-Pack/dokumen/01_CV.pdf'));
+  await expect(page.locator('.document-card')).toContainText('Teks terbaca',{timeout:30000});
+  await page.getByRole('button',{name:'Buka 01_CV.pdf',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Pratinjau dokumen'})).toBeVisible();
+  await page.getByRole('button',{name:'Tutup pratinjau'}).click();
+  await page.screenshot({path:`test-results/documents-${info.project.name}.png`,fullPage:true});
+  await expect(page.getByRole('button',{name:'Kirim pengajuan',exact:true})).toBeDisabled();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);expect(overflow).toBe(false);
+  const token=await page.evaluate(()=>sessionStorage.getItem('flowfix_token'));
+  const unauthorized=await page.request.post(`http://127.0.0.1:8000/api/submissions/${id}/review`,{headers:{Authorization:`Bearer ${token}`},data:{data_version:3,decision:'APPROVED',comment:'Percobaan akses peninjau oleh mahasiswa.'}});
+  expect(unauthorized.status()).toBe(403);
+  await page.getByRole('button',{name:'Keluar dan ganti akun'}).click();
+  await page.getByRole('button',{name:'Masuk sebagai peninjau',exact:true}).click();
+  await page.getByRole('button',{name:'Masuk sebagai peninjau',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Ruang peninjau'})).toBeVisible();
+  const reviewerToken=await page.evaluate(()=>sessionStorage.getItem('flowfix_token'));
+  const draftRead=await page.request.get(`http://127.0.0.1:8000/api/submissions/${id}`,{headers:{Authorization:`Bearer ${reviewerToken}`}});
+  expect(draftRead.status()).toBe(403);
+  await page.screenshot({path:`test-results/reviewer-${info.project.name}.png`,fullPage:true});
+  expect(errors).toEqual([]);
+});

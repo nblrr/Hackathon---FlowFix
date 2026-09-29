@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FlowFix Document Pre-Check Output",
+  "description": "Schema for the document-precheck flow output. Consumer (backend or Bob) must validate the LLM output against this schema before using the result. A structurally valid JSON does not guarantee factual correctness \u00e2\u20ac\u201d human review is still required for authenticity and administrative decisions.",
+  "type": "object",
+  "required": [
+    "status",
+    "findings",
+    "summary"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "NEEDS_FIX",
+        "NEEDS_HUMAN_CHECK"
+      ],
+      "description": "PASS: no issues found from available evidence. NEEDS_FIX: issues the student can correct. NEEDS_HUMAN_CHECK: unreadable document, missing input, or ambiguous issue."
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "message"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "missing_document",
+              "mismatch",
+              "invalid_value",
+              "unreadable",
+              "missing_input",
+              "other"
+            ]
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The form field or document field affected, or null."
+          },
+          "document": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The filename of the document where the issue was found, or null."
+          },
+          "message": {
+            "type": "string",
+            "description": "Clear description of the issue found."
+          },
+          "evidence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Quoted text from the relevant document(s), or null. For mismatches, should cite both sides."
+          },
+          "rule": {
+            "type": "string",
+            "minLength": 1
+          },
+          "suggested_action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current_value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "conflicting_value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "document",
+                "quote"
+              ],
+              "properties": {
+                "document": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "quote": {
+                  "type": "string",
+                  "minLength": 3
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "description": "One-sentence summary of the overall pre-check result."
+    }
+  },
+  "additionalProperties": false
+}
