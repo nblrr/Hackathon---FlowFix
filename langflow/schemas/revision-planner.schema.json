@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FlowFix Revision Planner Output",
+  "description": "Schema for the revision-planner flow output. Consumer must validate before presenting to student or applying any changes. All proposed changes require explicit student approval. Backend must verify submission_id and submission_version match the current state before applying.",
+  "type": "object",
+  "required": ["submission_id", "submission_version", "root_cause", "affected_fields", "recommended_changes", "evidence_used", "needs_human_review"],
+  "properties": {
+    "submission_id": {
+      "type": "string",
+      "description": "Echoed from current_submission. Used by backend to match the revision plan to the correct submission."
+    },
+    "submission_version": {
+      "type": "integer",
+      "description": "Echoed from current_submission. Backend must reject this plan if the submission has been updated since this version."
+    },
+    "root_cause": {
+      "type": "string",
+      "description": "Explanation of why the reviewer flagged this issue."
+    },
+    "affected_fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field", "current_value", "proposed_value"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Form field name (e.g. 'periode_mulai')."
+          },
+          "current_value": {
+            "type": ["string", "null"],
+            "description": "Current value of the field in the submission."
+          },
+          "proposed_value": {
+            "type": ["string", "null"],
+            "description": "Proposed corrected value, based on evidence."
+          },
+          "evidence": {
+            "type": ["string", "null"],
+            "description": "Quoted text from the evidence document supporting the proposed value."
+          },
+          "evidence_source": {
+            "type": ["string", "null"],
+            "description": "Filename of the document used as evidence."
+          }
+        }
+      }
+    },
+    "recommended_changes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Step-by-step instructions for the student."
+    },
+    "evidence_used": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of filenames of documents used as evidence for the proposed changes."
+    },
+    "needs_human_review": {
+      "type": "boolean",
+      "description": "true if the situation cannot be resolved by the student alone and requires human reviewer intervention."
+    }
+  }
+}

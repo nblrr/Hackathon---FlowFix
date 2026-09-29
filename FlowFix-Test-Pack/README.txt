@@ -1,0 +1,1 @@
+Baca Panduan_Test_Case_FlowFix.pdf. Mulai dari TC01: dokumen 01-05. SOP ini SIMULASI, bukan SOP resmi kampus. test_cases.json memetakan semua lampiran; jangan unggah seluruh variasi ke satu pengajuan. PDF 25 terkunci, password flowfix-demo; PDF 26 sengaja rusak. Hasil belum dijalankan pada FlowFix.

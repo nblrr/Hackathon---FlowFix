@@ -2,7 +2,7 @@
 .bob/
 
 # Catatan pembicara untuk penggunaan pribadi
-presentasi/catatan-pembicara.md
+**/catatan-pembicara.md
 
 # Variabel lingkungan dan kredensial lokal
 .env
@@ -12,3 +12,5 @@ presentasi/catatan-pembicara.md
 # Berkas sementara sistem operasi
 .DS_Store
 Thumbs.db
+tests/
+pengumpulan/
