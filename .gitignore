@@ -27,3 +27,13 @@ pengumpulan/
 !backend/tests/**
 !frontend/tests/
 !frontend/tests/**
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Script lokal (tidak perlu di-commit)
+export_and_push.py
