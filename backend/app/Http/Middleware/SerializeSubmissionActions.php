@@ -19,8 +19,18 @@ class SerializeSubmissionActions
         if (!$submission instanceof Submission) $submission=Submission::findOrFail($submission);
         app(SubmissionService::class)->authorize($submission,$request->user());
         $seconds=config('flowfix.langflow.run_timeout')+config('flowfix.extraction_timeout')+30;
-        $lock=Cache::store('file')->lock('flowfix-submission-'.$submission->id,$seconds);
-        if (!$lock->get()) throw new ApiException('ACTION_IN_PROGRESS','Pengajuan ini sedang diproses. Tunggu hingga selesai lalu muat ulang.',409);
+        $key='flowfix-submission-'.$submission->id;
+        $lock=Cache::store('file')->lock($key,$seconds);
+        // Try to acquire the lock. If it fails, attempt a force-release once in case
+        // a previous request died without releasing (e.g. PHP timeout, process kill).
+        // A second get() after force-release will succeed only if no live owner exists.
+        if (!$lock->get()) {
+            $lock->forceRelease();
+            $lock=Cache::store('file')->lock($key,$seconds);
+            if (!$lock->get()) {
+                throw new ApiException('ACTION_IN_PROGRESS','Pengajuan ini sedang diproses. Tunggu hingga selesai lalu muat ulang.',409);
+            }
+        }
         try { $submission->refresh(); return $next($request); }
         finally { $lock->release(); }
     }
