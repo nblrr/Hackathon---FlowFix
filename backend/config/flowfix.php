@@ -23,11 +23,13 @@ return [
             'reviewer-summary' => env('LANGFLOW_REVIEWER_SUMMARY_ID'),
             'revision-planner' => env('LANGFLOW_REVISION_PLANNER_ID'),
         ],
+        // All flows use a single ChatInput node "ci-main".
+        // Each flow entry maps to a single component; inputs are JSON-encoded as one string.
         'mapping' => [
-            'submission-assistant'=>['submission_state'=>'ChatInput-FH6gN','user_message'=>'ChatInput-qsq4H','sop_context'=>'ChatInput-bInbW'],
-            'document-precheck'=>['sop_requirements'=>'TextInput-SOP','form_data'=>'TextInput-Form','document_contents'=>'TextInput-Documents'],
-            'reviewer-summary'=>['submission_data'=>'ChatInput-hXWlc','document_contents'=>'ChatInput-CMt4x','precheck_result'=>'ChatInput-ZlsyZ'],
-            'revision-planner'=>['reviewer_comment'=>'ChatInput-XBK3f','current_submission'=>'ChatInput-0jSlh','updated_evidence'=>'ChatInput-OKena','sop_rules'=>'ChatInput-1lVbI'],
+            'submission-assistant' => ['input' => 'ci-main'],
+            'document-precheck'    => ['input' => 'ci-main'],
+            'reviewer-summary'     => ['input' => 'ci-main'],
+            'revision-planner'     => ['input' => 'ci-main'],
         ],
     ],
 ];
