@@ -5,7 +5,7 @@ logging.disable(logging.CRITICAL)
 def extract(path):
     from pypdf import PdfReader
     try:
-        reader = PdfReader(path, strict=True)
+        reader = PdfReader(path, strict=False)
         if reader.is_encrypted:
             return {'status':'failed','code':'PDF_LOCKED','message':'PDF terkunci. Unggah salinan tanpa kata sandi.','pages':[]}
         if not reader.pages or len(reader.pages) > 100:
@@ -23,3 +23,4 @@ if __name__ == '__main__':
     try: result=extract(sys.argv[1])
     except ImportError: result={'status':'failed','code':'EXTRACTOR_UNAVAILABLE','message':'Ekstraktor PDF belum terpasang. Hubungi pengelola demo.','pages':[]}
     print(json.dumps(result,ensure_ascii=True))
+
