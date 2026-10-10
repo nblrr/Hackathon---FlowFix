@@ -14,7 +14,6 @@
 .DS_Store
 Thumbs.db
 tests/
-pengumpulan/
 
 # Application and local runtime
 .tools/
