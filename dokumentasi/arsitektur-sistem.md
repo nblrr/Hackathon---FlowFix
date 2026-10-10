@@ -1,6 +1,6 @@
 # Arsitektur Sistem dan Integrasi
 
-Dokumen ini menjelaskan rancangan teknis FlowFix pada tahap ide awal. Susunan komponen dipilih untuk memisahkan logika administrasi, pengelolaan data, dan bantuan AI.
+Dokumen ini menjelaskan rancangan teknis FlowFix. Susunan komponen dipilih untuk memisahkan logika administrasi, pengelolaan data, dan bantuan AI.
 
 ## Gambaran Sistem
 
@@ -66,29 +66,29 @@ Student
 
 ```text
 Antarmuka mahasiswa, peninjau, dan administrator
+              (React 19 + Vite + TypeScript + Tailwind)
                          |
-                   Backend FastAPI
+                   Backend Laravel 12
+                   (PHP 8.2 + SQLite)
                          |
-           ┌──────────────┼─────────────────┐
-           |              |                 |
-     Supabase Auth   PostgreSQL dan    Ekstraksi teks
-                     Storage privat    dokumen
-                                            |
-                                         Langflow
-                                            |
-                                         Model AI
+           ┌─────────────┴─────────────┐
+           |                           |
+     Ekstraksi teks PDF           Langflow 1.12
+     (pypdf via subprocess)            |
+                                  LiteLLM Proxy
+                                       |
+                                  LLM Server (9Router)
 ```
 
-| Komponen | Tanggung Jawab yang Direncanakan |
+| Komponen | Tanggung Jawab |
 | --- | --- |
-| React, Vite, Tailwind CSS | Antarmuka percakapan, unggahan, status, pemeriksaan, dan persetujuan koreksi |
-| FastAPI | Identitas dan hak akses, pemeriksaan isian, perubahan status, routing, serta pemanggilan alur AI |
-| Supabase Auth | Autentikasi pengguna yang dipetakan ke institusi dan perannya |
-| PostgreSQL | Penyimpanan konfigurasi layanan, state pengajuan, versi dokumen, keputusan, dan riwayat |
-| Supabase Storage | Penyimpanan dokumen privat dengan pemeriksaan akses |
-| Ekstraksi dokumen | Pengambilan teks dan referensi halaman, serta penandaan berkas yang tidak terbaca |
-| Langflow | Pengaturan alur Submission Assistant, pemeriksaan dokumen, ringkasan, dan pemulihan revisi |
-| Model AI | Pemahaman bahasa alami, interpretasi isi dokumen, penjelasan temuan, dan penalaran atas umpan balik peninjau |
+| React 19 + Vite + TypeScript + Tailwind | Antarmuka percakapan, unggahan, status, pemeriksaan, dan persetujuan koreksi |
+| Laravel 12 + PHP 8.2 | Autentikasi Sanctum, REST API, serialisasi aksi, validasi output AI, pemanggilan flows |
+| SQLite | State pengajuan, versi dokumen, keputusan, riwayat, dan audit events |
+| pypdf (subprocess Python) | Ekstraksi teks PDF; penandaan halaman tidak terbaca atau dokumen terkunci/rusak |
+| Langflow 1.12 | Orkestrasi 4 AI flows: Submission Assistant, Document Pre-Check, Reviewer Summary, Revision Planner |
+| LiteLLMProxyComponent | Proxy ke LLM server dengan free-text model name (tidak terikat dropdown OpenAI) |
+| LLM Server (9Router port 20128) | Inferensi bahasa alami lokal, model `hacka` |
 
 ## Submission Assistant
 
@@ -202,20 +202,16 @@ Riwayat percakapan membantu kelangsungan dialog. State terstruktur mencatat pros
 
 ## Alur AI dalam Langflow
 
-| Flow | Nama Kanonik | Masukan | Proses | Keluaran |
-| --- | --- | --- | --- | --- |
-| Submission Assistant | `Submission Assistant` | State pengajuan, pertanyaan mahasiswa, SOP, dan temuan pemeriksaan | Memahami intent, memandu proses, menjelaskan temuan | Respons alami + struktur intent dan next_action |
-| Pemeriksaan dokumen | `Document Pre-Check` | Isian formulir, teks dokumen, dan persyaratan | Mencari kekurangan dan ketidaksesuaian berdasarkan bukti | Status pemeriksaan, temuan, dan sumber bukti terstruktur |
-| Ringkasan peninjau | `Reviewer Summary` | Pengajuan, dokumen, dan temuan pemeriksaan | Menyusun fakta penting dan bagian yang perlu diverifikasi | Ringkasan dengan referensi dokumen |
-| Pemulihan revisi | `Revision Planner` | Komentar peninjau, bukti terbaru, aturan, dan versi pengajuan | Mengidentifikasi bagian terdampak dan mengusulkan koreksi | Alasan revisi, kolom terdampak, nilai lama, usulan nilai baru, dan sumber |
+Semua 4 flows menggunakan arsitektur single-input: `ChatInput (ci-main) → Prompt Template → LiteLLMProxyComponent → ChatOutput`. Input dikombinasikan menjadi satu JSON string oleh backend sebelum dikirim.
 
-Flow pendukung:
-
-| Flow | Nama Kanonik | Fungsi |
+| Flow | Masukan | Keluaran |
 | --- | --- | --- |
-| Pengarah alur | `Submission Router` | Mengusulkan routing antar-flow; eksekusi routing dilakukan backend |
-| Audit status | `Audit Record Generator` | Menghasilkan proposal entri audit; penyimpanan dilakukan backend |
-| Penyusun notifikasi | `Notification Composer` | Menyusun teks notifikasi; pengiriman dilakukan backend |
+| `submission-assistant` | State pengajuan + pertanyaan mahasiswa | JSON: intent, message, next_action |
+| `document-precheck` | SOP + form data + teks dokumen | JSON: status, findings[], summary |
+| `reviewer-summary` | Data pengajuan + dokumen + hasil precheck | JSON: key_facts[], review_summary |
+| `revision-planner` | Komentar peninjau + bukti + SOP | JSON: root_cause, affected_fields[], recommended_changes[] |
+
+Output setiap flow divalidasi di backend menggunakan JSON Schema di `backend/resources/schemas/`.
 
 ## Pemrosesan Dokumen
 
@@ -268,14 +264,7 @@ Jika analisis gagal, bukti bertentangan, atau dokumen tidak terbaca, sistem meny
 
 ## Hubungan IBM Bob dan Langflow
 
-IBM Bob direncanakan membantu pengembang menulis kode, membangun penghubung API, dan menyiapkan pengujian. Langflow menjalankan analisis AI yang akan dipakai aplikasi. Keduanya dihubungkan melalui MCP pada lingkungan pengembangan.
-
-1. Pengembang menyediakan kasus sintetis dan hasil yang diharapkan.
-2. Alur Langflow disediakan sebagai alat MCP dengan nama dan fungsi yang jelas.
-3. Bob memanggil alat tersebut dengan konteks pengujian yang sesuai.
-4. Langflow mengembalikan hasil analisis untuk diperiksa.
-5. Bob membantu membandingkan hasil dengan harapan serta menyiapkan perbaikan kode atau pengujian.
-6. Pengembang meninjau perubahan dan menjalankan pengujian kembali.
+IBM Bob digunakan untuk membangun seluruh sistem: menulis kode backend dan frontend, membangun flows Langflow via MCP, menyiapkan pengujian, dan debugging. Langflow menjalankan analisis AI yang dipakai aplikasi. Keduanya dihubungkan melalui MCP server `lf-hackathon` pada lingkungan pengembangan.
 
 [Langflow sebagai server MCP](https://docs.langflow.org/mcp-server), [penggunaan MCP pada IBM Bob](https://bob.ibm.com/docs/ide/configuration/mcp/mcp-in-bob).
 

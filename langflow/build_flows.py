@@ -12,23 +12,29 @@ Key discoveries during development:
   or add it to LANGFLOW_SSRF_ALLOWED_HOSTS env var.
 
 Usage:
-    pip install requests
-    LANGFLOW_URL=http://127.0.0.1:7860 \\
-    LANGFLOW_API_KEY=<your-key> \\
-    LANGFLOW_FOLDER_ID=<your-folder-id> \\
-    LLM_BASE_URL=http://<your-lan-ip>:20128/v1 \\
-    LLM_API_KEY=<your-llm-key> \\
-    LLM_MODEL=<model-name> \\
-    python build_flows.py
+    # Isi .env di root repo (salin dari .env.example), lalu:
+    python langflow/build_flows.py
+
+    # Atau override manual via env var:
+    set LANGFLOW_API_KEY=sk-xxx && python langflow/build_flows.py
 """
-import json, os, requests, sys
+import json, os, pathlib, requests, sys
+
+# Auto-load .env dari root repo (dua level di atas file ini: langflow/build_flows.py)
+_env_path = pathlib.Path(__file__).resolve().parents[1] / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _, _v = _line.partition("=")
+            os.environ[_k.strip()] = _v.strip()
 
 LANGFLOW_URL  = os.getenv("LANGFLOW_URL",       "http://127.0.0.1:7860")
 API_KEY       = os.getenv("LANGFLOW_API_KEY",   "")
 FOLDER_ID     = os.getenv("LANGFLOW_FOLDER_ID", "")
 LLM_BASE_URL  = os.getenv("LLM_BASE_URL",       "http://localhost:20128/v1")
 LLM_API_KEY   = os.getenv("LLM_API_KEY",        "")
-LLM_MODEL     = os.getenv("LLM_MODEL",          "semua_model_dipilih")
+LLM_MODEL     = os.getenv("LLM_MODEL",          "hacka")
 
 if not API_KEY:
     print("ERROR: Set LANGFLOW_API_KEY environment variable")
@@ -95,7 +101,7 @@ def build_flow(flow_id, name, description, system_prompt, prompt_template_text, 
     # Get base component templates from registry
     ci_tmpl  = copy.deepcopy(reg["input_output"]["ChatInput"])
     pt_tmpl  = copy.deepcopy(reg["models_and_agents"]["Prompt Template"])
-    llm_tmpl = copy.deepcopy(reg["openai"]["ext:openai:OpenAIModelComponent@official"])
+    llm_tmpl = copy.deepcopy(reg["litellm"]["ext:litellm:LiteLLMProxyComponent@official"])
     co_tmpl  = copy.deepcopy(reg["input_output"]["ChatOutput"])
 
     # Add lf_version to each template — required by Langflow graph builder at runtime
@@ -136,12 +142,12 @@ def build_flow(flow_id, name, description, system_prompt, prompt_template_text, 
         "value": ""
     }
 
-    # --- OpenAIModelComponent node ---
-    # This component has openai_api_base + model_name string fields, no ModelInput/external_options.
+    # --- LiteLLMProxyComponent node ---
+    # Uses api_base + model_name as free-text strings — no dropdown validation.
     llm_tmpl["display_name"] = "Language Model (Localhost)"
     llm_tmpl["template"]["api_key"]["value"] = LLM_API_KEY
     llm_tmpl["template"]["api_key"]["load_from_db"] = False
-    llm_tmpl["template"]["openai_api_base"]["value"] = LLM_BASE_URL
+    llm_tmpl["template"]["api_base"]["value"] = LLM_BASE_URL
     llm_tmpl["template"]["model_name"]["value"] = LLM_MODEL
     llm_tmpl["template"]["temperature"]["value"] = 0.1
     llm_tmpl["template"]["max_tokens"]["value"] = 4096
@@ -152,7 +158,7 @@ def build_flow(flow_id, name, description, system_prompt, prompt_template_text, 
     co_tmpl["display_name"] = "Chat Output"
     co_tmpl["template"]["sender_name"]["value"] = "FlowFix-AI"
 
-    LLM_COMPONENT_TYPE = "ext:openai:OpenAIModelComponent@official"
+    LLM_COMPONENT_TYPE = "ext:litellm:LiteLLMProxyComponent@official"
 
     # Build nodes
     nodes = [
@@ -206,6 +212,8 @@ def upload_flow(flow_dict):
         files=files,
         timeout=30
     )
+    if not r.ok:
+        print(f"  ERROR {r.status_code}: {r.text[:500]}")
     r.raise_for_status()
     result = r.json()
     new_id = result[0]["id"] if isinstance(result, list) else result.get("id")
@@ -243,17 +251,17 @@ FLOWS = [
         "system_prompt": (
             "Kamu adalah FlowFix Document Pre-Check Agent. "
             "Tugas: periksa kelengkapan field wajib dan konsistensi data antar-dokumen pengajuan magang. "
-            "Output HARUS berupa JSON valid:\n"
+            "Output HARUS berupa JSON valid dengan struktur PERSIS ini, tidak ada field lain:\n"
             '{"status": "PASS"|"NEEDS_FIX"|"NEEDS_HUMAN_CHECK", '
-            '"findings": [{"rule": "R01", "issue": "..."}], '
-            '"human_checks": ["..."]}'
+            '"findings": [{"type": "missing_document"|"mismatch"|"invalid_value"|"unreadable"|"missing_input"|"other", "message": "deskripsi masalah", "field": null, "document": null, "evidence": null, "rule": "R01", "suggested_action": "saran perbaikan", "current_value": null, "conflicting_value": null, "evidence_references": []}], '
+            '"summary": "satu kalimat ringkasan hasil pemeriksaan"}'
         ),
         "prompt_template": (
             "{input}\n\n"
             "---\n"
             "Berdasarkan SOP, data formulir, dan teks dokumen di atas, "
             "periksa kelengkapan dan konsistensi pengajuan magang. "
-            "Kembalikan HANYA JSON valid."
+            "Kembalikan HANYA JSON valid sesuai schema, tanpa teks tambahan."
         ),
         "test_input": (
             "## SOP\nR01: Lima lampiran wajib. R06: Min 90 SKS IPK 2.75. "
@@ -272,15 +280,18 @@ FLOWS = [
         "system_prompt": (
             "Kamu adalah FlowFix Reviewer Summary Generator. "
             "Buat ringkasan terstruktur dari pengajuan mahasiswa untuk mempercepat review admin/dosen. "
-            "Output HARUS berupa JSON valid:\n"
-            '{"student": {}, "company": {}, "period": {}, '
-            '"documents": [], "key_facts": [], "human_verification_required": []}'
+            "Output HARUS berupa JSON valid dengan struktur PERSIS ini, tidak ada field lain:\n"
+            '{"submission_status": "status pengajuan saat ini (string)", '
+            '"key_facts": [{"fact": "fakta singkat", "source_document": "nama file atau null", "page": null}], '
+            '"precheck_findings": [{"type": "INFO|WARNING|ERROR", "field": null, "document": null, "message": "pesan"}], '
+            '"review_summary": "satu paragraf ringkasan untuk reviewer", '
+            '"needs_attention": true|false}'
         ),
         "prompt_template": (
             "{input}\n\n"
             "---\n"
             "Buat ringkasan terstruktur untuk reviewer berdasarkan data di atas. "
-            "Kembalikan HANYA JSON valid."
+            "Kembalikan HANYA JSON valid sesuai schema, tanpa teks tambahan."
         ),
         "test_input": (
             "## DATA PENGAJUAN\n{\"nim\":\"IF240017\",\"name\":\"Arga Pratama\","
@@ -298,16 +309,20 @@ FLOWS = [
         "system_prompt": (
             "Kamu adalah FlowFix Recovery Agent. "
             "Bantu mahasiswa memahami dan memperbaiki revisi dengan root cause analysis. "
-            "Output HARUS berupa JSON valid:\n"
-            '{"root_cause": "...", '
-            '"affected_fields": [{"field":"...","current_value":"...","proposed_value":"...","evidence":"..."}], '
-            '"correction_steps": ["..."]}'
+            "Output HARUS berupa JSON valid dengan struktur PERSIS ini, tidak ada field lain:\n"
+            '{"submission_id": "id dari current_submission", '
+            '"submission_version": 1, '
+            '"root_cause": "penjelasan mengapa reviewer mempermasalahkan ini", '
+            '"affected_fields": [{"field": "nama_field", "current_value": "nilai sekarang atau null", "proposed_value": "nilai yang diusulkan atau null", "evidence": "kutipan dari dokumen atau null", "evidence_source": "nama file dokumen atau null"}], '
+            '"recommended_changes": ["langkah 1", "langkah 2"], '
+            '"evidence_used": ["nama_file.pdf"], '
+            '"needs_human_review": false}'
         ),
         "prompt_template": (
             "{input}\n\n"
             "---\n"
-            "Lakukan root cause analysis dan susun rencana koreksi. "
-            "Kembalikan HANYA JSON valid."
+            "Lakukan root cause analysis dan susun rencana koreksi berdasarkan data di atas. "
+            "Kembalikan HANYA JSON valid sesuai schema, tanpa teks tambahan."
         ),
         "test_input": (
             "## KOMENTAR REVIEWER\nPeriode magang tidak konsisten antar dokumen.\n\n"
@@ -325,13 +340,20 @@ FLOWS = [
         "system_prompt": (
             "Kamu adalah FlowFix Submission Assistant. "
             "Kamu mengetahui state pengajuan mahasiswa dan menjawab pertanyaan berdasarkan konteks nyata. "
-            "Berikan jawaban spesifik dan actionable dalam bahasa yang mudah dipahami."
+            "Output HARUS berupa JSON valid, tidak ada teks lain di luar JSON:\n"
+            '{"intent": "START_SUBMISSION"|"CHECK_REQUIREMENTS"|"UPLOAD_DOCUMENT"|"CHECK_SUBMISSION"|"FIX_SUBMISSION"|"CHECK_STATUS"|"ASK_QUESTION", '
+            '"message": "jawaban untuk mahasiswa dalam bahasa Indonesia", '
+            '"next_action": "COLLECT_SUBMISSION_INFO"|"SHOW_REQUIREMENTS"|"REQUEST_DOCUMENT_UPLOAD"|"RUN_DOCUMENT_PRECHECK"|"SHOW_PRECHECK_RESULT"|"SHOW_STATUS"|"PLAN_REVISION"|"ANSWER_QUESTION"|"REQUEST_HUMAN_REVIEW", '
+            '"required_information": [], '
+            '"required_documents": [], '
+            '"missing_information": [], '
+            '"proposed_updates": {}}'
         ),
         "prompt_template": (
             "{input}\n\n"
             "---\n"
             "Jawab pertanyaan mahasiswa berdasarkan state pengajuan di atas. "
-            "Berikan jawaban yang spesifik dan actionable."
+            "Kembalikan HANYA JSON valid sesuai schema, tanpa teks tambahan."
         ),
         "test_input": (
             "## STATE PENGAJUAN\n{\"status\":\"NEEDS_FIX\","

@@ -4,41 +4,31 @@
 
 FlowFix adalah konsep platform layanan perangkat lunak (SaaS) untuk membantu perguruan tinggi mengelola pengajuan administrasi mahasiswa. Platform ini menghubungkan formulir, dokumen, persyaratan, pemeriksaan, dan perbaikan dalam satu alur yang dapat dikonfigurasi.
 
-**Tahap proyek: pengajuan ide awal hackathon.** Repositori ini memuat rancangan solusi dan arah pengembangan. Fitur serta integrasi teknologi yang dijelaskan merupakan rencana; target dampak akan diuji pada tahap prototipe.
-
-Untuk meninjau ide, mulai dari README ini dan [presentasi proyek](pengumpulan/presentasi/flowfix.pdf). Untuk melanjutkan pekerjaan, baca [status dan tindak lanjut](dokumentasi/tindak-lanjut.md).
+**Tahap proyek: prototipe fungsional hackathon.** Repositori ini memuat sistem yang sudah berjalan end-to-end: backend Laravel, frontend React, dan 4 AI flows di Langflow. Untuk meninjau ide, mulai dari README ini dan [presentasi proyek](pengumpulan/presentasi/flowfix.pdf).
 
 ## Struktur Repositori
 
 ```text
 FlowFix/
 ├── README.md
-├── dokumentasi/
-│   ├── arsitektur-sistem.md      # Komponen dan integrasi
-│   ├── model-bisnis.md           # Pelanggan dan pendapatan
-│   ├── prinsip-ai.md             # Pengawasan, privasi, dan batas AI
-│   ├── rencana-validasi.md       # Pengujian masalah dan dampak
-│   ├── rencana-pengembangan.md   # Cakupan dan tahapan produk
-│   ├── audit-langflow.md         # Temuan pemeriksaan teknis
-│   └── tindak-lanjut.md          # Status dan pekerjaan berikutnya
+├── AGENTS.md                     # Panduan untuk AI agent (IBM Bob)
+├── start-demo.ps1                # Script startup semua services sekaligus
+├── .env.example                  # Template konfigurasi lokal
+├── backend/                      # Laravel 12 + PHP 8.2 + SQLite
+│   ├── app/                      # Controllers, Services, Models
+│   ├── config/flowfix.php        # Konfigurasi flow & field
+│   ├── resources/schemas/        # JSON Schema validasi output AI
+│   └── .env.example              # Template konfigurasi backend
+├── frontend/                     # React 19 + Vite + TypeScript + Tailwind
+│   └── src/                      # Components & services
 ├── langflow/
-│   ├── README.md                # Status dan petunjuk rancangan flow
-│   ├── pemeriksaan-dokumen.json
-│   ├── ringkasan-peninjau.json
-│   ├── pemulihan-revisi.json
-│   ├── asisten-status-pengajuan.json
-│   ├── penyusun-notifikasi.json
-│   ├── audit-status.json
-│   └── pengarah-alur.json
-├── prototipe/
-│   └── index.html               # Simulasi antarmuka lokal
-└── pengumpulan/
-    ├── panduan.md
-    ├── presentasi/              # PDF dan PowerPoint
-    └── tangkapan-layar/         # Lima gambar untuk pengumpulan
+│   ├── application/              # 4 flow JSON siap impor ke Langflow
+│   ├── build_flows.py            # Script rebuild flows via API
+│   └── DEPLOYMENT.md             # Panduan deploy ulang flows
+├── FlowFix-Test-Pack/            # 24 test case + SOP simulasi + dokumen uji
+├── dokumentasi/                  # Arsitektur, model bisnis, prinsip AI, rencana
+└── pengumpulan/                  # Presentasi PDF/PPTX dan tangkapan layar
 ```
-
-Nama berkas menggunakan huruf kecil dan tanda hubung, dengan pengecualian nama standar seperti `README.md`. Setiap berkas Langflow mewakili satu fungsi; status dan batasannya dijelaskan di README Langflow. Penomoran hanya dipakai untuk urutan tangkapan layar. Konfigurasi `.bob/`, kredensial, serta catatan pembicara bersifat lokal dan tidak disertakan dalam Git.
 
 ## Latar Belakang Masalah
 
@@ -127,13 +117,13 @@ Contohnya, ketika surat magang diperbarui setelah pengajuan, Recovery Agent dapa
 
 Nilai tambah kombinasi ini akan dibandingkan dengan proses yang digunakan calon institusi pengguna.
 
-## Rencana Penggunaan Langflow dan IBM Bob
+## Penggunaan Langflow dan IBM Bob
 
-**Langflow** direncanakan mengatur empat alur AI utama: Submission Assistant, Document Pre-Check, Reviewer Summary, dan Revision Planner. Submission Assistant adalah titik masuk percakapan utama bagi mahasiswa. Tiga alur lainnya mendukung proses: pemeriksaan dokumen, ringkasan untuk peninjau, dan usulan koreksi terstruktur. Tiga alur pendukung (Submission Router, Audit Record Generator, Notification Composer) melengkapi sistem.
+**Langflow** menjalankan empat alur AI utama: Submission Assistant, Document Pre-Check, Reviewer Summary, dan Revision Planner. Keempat alur sudah berjalan end-to-end dan terhubung ke backend.
 
-**IBM Bob** direncanakan membantu pengembangan antarmuka, logika aplikasi, integrasi Langflow, serta pengujian. Hasil pekerjaannya tetap ditinjau oleh pengembang.
+**IBM Bob** digunakan untuk membangun sistem ini: menulis kode backend dan frontend, membangun flows Langflow via MCP, menyiapkan pengujian, dan debugging. Hasil kerjanya tetap ditinjau oleh pengembang.
 
-Hubungan langsung keduanya direncanakan melalui **Model Context Protocol (MCP)**: Bob memanggil alur Langflow menggunakan data uji sintetis, menerima hasil analisis, lalu membantu mengevaluasi hasil dan memperbaiki integrasi. Langflow mendukung penyediaan alur sebagai alat MCP, dan Bob mendukung koneksi ke server MCP. [Dokumentasi Langflow](https://docs.langflow.org/mcp-server), [dokumentasi IBM Bob](https://bob.ibm.com/docs/ide/configuration/mcp/mcp-in-bob).
+Keduanya dihubungkan melalui **Model Context Protocol (MCP)**: Bob memanggil alur Langflow menggunakan data uji sintetis, menerima hasil analisis, lalu membantu mengevaluasi dan memperbaiki integrasi. [Dokumentasi Langflow](https://docs.langflow.org/mcp-server), [dokumentasi IBM Bob](https://bob.ibm.com/docs/ide/configuration/mcp/mcp-in-bob).
 
 ```text
 Pengembangan:
@@ -146,22 +136,19 @@ Pengguna → Backend FlowFix → Langflow → Temuan atau usulan
         → Peninjauan pengguna → Tindakan yang disetujui
 ```
 
-Keluaran integrasi yang ditargetkan adalah aplikasi yang terhubung dengan alur AI, disertai hasil pengujian. Backend mengendalikan hak akses, pemeriksaan isian, status pengajuan, dan penerapan perubahan yang sudah disetujui.
+Backend mengendalikan hak akses, pemeriksaan isian, status pengajuan, dan penerapan perubahan yang sudah disetujui.
 
-**Status teknis saat ini:** koneksi MCP lokal ke proyek contoh Langflow berhasil melewati handshake dan menampilkan tiga alat. FlowFix belum terverifikasi berjalan melalui koneksi tersebut. Tujuh berkas [rancangan Langflow](langflow/README.md) tersedia; implementasi diprioritaskan pada Submission Assistant dan tiga alur dokumen inti.
+## Teknologi yang Digunakan (Demo Hackathon)
 
-## Teknologi yang Direncanakan
-
-| Bagian | Teknologi | Peran |
+| Bagian | Teknologi | Port |
 | --- | --- | --- |
-| Antarmuka | React, Vite, Tailwind CSS | Formulir, unggahan, status, dan tampilan pemeriksaan |
-| Backend | FastAPI | Logika layanan, hak akses, dan integrasi AI |
-| Basis data | PostgreSQL melalui Supabase | Konfigurasi layanan, pengajuan, dan riwayat |
-| Autentikasi dan penyimpanan | Supabase Auth dan Storage | Identitas pengguna dan penyimpanan dokumen privat |
-| Orkestrasi AI | Langflow | Pemeriksaan awal, ringkasan, dan pemulihan revisi |
-| Bantuan pengembangan | IBM Bob | Perencanaan, implementasi, perbaikan, dan pengujian kode |
+| Frontend | React 19 + Vite + TypeScript + Tailwind CSS | 5173 |
+| Backend | Laravel 12 + PHP 8.2 + SQLite | 8000 |
+| Orkestrasi AI | Langflow 1.12+ | 7860 |
+| LLM Server | 9Router (OpenAI-compatible API) | 20128 |
+| Bantuan pengembangan | IBM Bob + MCP | — |
 
-Pemilihan model AI akan mempertimbangkan kemampuan analisis dokumen, dukungan bahasa, biaya, dan pengelolaan data. Detail rancangan tersedia dalam [arsitektur dan integrasi](dokumentasi/arsitektur-sistem.md).
+Detail arsitektur tersedia dalam [arsitektur dan integrasi](dokumentasi/arsitektur-sistem.md).
 
 ## Dampak yang Diharapkan
 
@@ -173,7 +160,7 @@ Pemilihan model AI akan mempertimbangkan kemampuan analisis dokumen, dukungan ba
 | Pemahaman mahasiswa | Minimal 80% peserta dapat menjelaskan koreksi dan alasannya tanpa bantuan |
 | Kesalahan saat pengajuan dikirim | Lebih sedikit dibandingkan proses pembanding |
 
-**Angka tersebut merupakan target, bukan hasil yang sudah dicapai.** Evaluasi direncanakan menggunakan tugas yang setara, data sintetis, dan masukan calon pengguna. Rinciannya ada pada [rencana validasi](dokumentasi/rencana-validasi.md).
+**Angka tersebut merupakan target, bukan hasil yang sudah dicapai.** Evaluasi direncanakan menggunakan tugas yang setara, data sintetis, dan masukan calon pengguna. Rinciannya ada pada [rencana validasi dan pengembangan](dokumentasi/rencana-validasi-dan-pengembangan.md).
 
 ## Model Bisnis dan Potensi Pengembangan
 
@@ -183,7 +170,7 @@ Pengembangan dimulai dari alur magang lengkap dan satu layanan sederhana, yaitu 
 
 Arsitektur multi-tenant direncanakan agar beberapa institusi memiliki pengguna, SOP, dan data masing-masing. Integrasi sistem informasi akademik, SSO, analitik, dan tanda tangan digital merupakan arah pengembangan lanjutan. Kapasitas layanan akan ditentukan melalui pengujian beban.
 
-Baca [model bisnis](dokumentasi/model-bisnis.md) dan [arah pengembangan](dokumentasi/rencana-pengembangan.md).
+Baca [model bisnis](dokumentasi/model-bisnis.md) dan [rencana pengembangan](dokumentasi/rencana-validasi-dan-pengembangan.md).
 
 ## AI yang Bertanggung Jawab
 
@@ -193,30 +180,21 @@ Rancangan juga mencakup pembatasan pengumpulan data, pemisahan akses antarinstan
 
 Penjelasan lengkap tersedia pada [prinsip AI yang bertanggung jawab](dokumentasi/prinsip-ai.md).
 
-## Pitch Deck
+## Cara Menjalankan Demo
 
-Presentasi ide awal terdiri dari delapan slide berbahasa Indonesia:
+```powershell
+# Isi .env di root repo (salin dari .env.example), lalu:
+.\start-demo.ps1
+```
 
-- [PowerPoint yang dapat diedit](pengumpulan/presentasi/flowfix.pptx)
-- [PDF untuk pengumpulan](pengumpulan/presentasi/flowfix.pdf)
+Akun demo: `mahasiswa@flowfix.test` / `FlowFix-demo-2026!` dan `peninjau@flowfix.test` / `FlowFix-demo-2026!`
+
+Panduan lengkap ada di [langflow/DEPLOYMENT.md](langflow/DEPLOYMENT.md).
 
 ## Dokumen Pendukung
 
 - [Arsitektur dan integrasi teknologi](dokumentasi/arsitektur-sistem.md)
-- [Rencana validasi masalah dan dampak](dokumentasi/rencana-validasi.md)
 - [Model bisnis dan posisi solusi](dokumentasi/model-bisnis.md)
 - [Prinsip AI yang bertanggung jawab](dokumentasi/prinsip-ai.md)
-- [Rencana pengembangan dan ruang lingkup](dokumentasi/rencana-pengembangan.md)
-- [Rancangan dan status Langflow](langflow/README.md)
-- [Audit teknis Langflow](dokumentasi/audit-langflow.md)
-- [Status dan tindak lanjut](dokumentasi/tindak-lanjut.md)
-
-## Prototipe Antarmuka dan Berkas Pengumpulan
-
-[Prototipe antarmuka](prototipe/index.html) dapat dibuka langsung di peramban setelah repositori diunduh. Tampilan ini menjelaskan alur layanan, pemeriksaan awal, dan persetujuan koreksi menggunakan data simulasi. Prototipe belum terhubung ke backend atau menjalankan flow AI. Koneksi MCP lokal yang telah diuji masih terpisah dari integrasi aplikasi FlowFix.
-
-Lima [tangkapan layar prototipe](pengumpulan/panduan.md#3-project--prototype-screenshot) disiapkan untuk melengkapi pengajuan ide. Diagram integrasi ditandai sebagai rancangan, sementara hasil pemeriksaan dan koreksi ditandai sebagai simulasi.
-
-![Prototipe layanan kampus FlowFix dengan data simulasi](pengumpulan/tangkapan-layar/01-layanan-kampus.png)
-
-[Panduan pengumpulan](pengumpulan/panduan.md) menjelaskan berkas untuk kolom tautan proyek, pitch deck, dan screenshot.
+- [Rencana pengembangan dan validasi](dokumentasi/rencana-validasi-dan-pengembangan.md)
+- [Panduan deploy Langflow](langflow/DEPLOYMENT.md)

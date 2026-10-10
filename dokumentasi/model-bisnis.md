@@ -61,4 +61,4 @@ Penghematan waktu staf merupakan potensi peningkatan kapasitas layanan; nilainya
 
 Setelah manfaat awal tervalidasi, penggunaan dapat diperluas ke layanan lain dalam institusi yang sama, kemudian ke perguruan tinggi lain. Langkah ini memerlukan konfigurasi yang mudah diulang, pemisahan data yang teruji, dan dukungan operasional yang memadai.
 
-Integrasi sistem informasi akademik, autentikasi kampus, analitik layanan, dan pemasangan pada infrastruktur institusi menjadi peluang pengembangan lebih lanjut. Tahapannya dijelaskan dalam [arah pengembangan](rencana-pengembangan.md).
+Integrasi sistem informasi akademik, autentikasi kampus, analitik layanan, dan pemasangan pada infrastruktur institusi menjadi peluang pengembangan lebih lanjut. Tahapannya dijelaskan dalam [rencana pengembangan dan validasi](rencana-validasi-dan-pengembangan.md).

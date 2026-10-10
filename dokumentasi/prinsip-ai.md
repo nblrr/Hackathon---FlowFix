@@ -51,4 +51,4 @@ Recovery Agent dapat mengusulkan koreksi formulir atau menyarankan pengguna memp
 
 Keamanan, keadilan, dan efektivitas perlu dievaluasi melalui pengujian serta masukan pengguna. Prinsip ini merupakan komitmen rancangan, bukan klaim sertifikasi atau kepatuhan yang sudah diperoleh.
 
-Lihat [rencana validasi](rencana-validasi.md) untuk pendekatan evaluasinya.
+Lihat [rencana validasi dan pengembangan](rencana-validasi-dan-pengembangan.md) untuk pendekatan evaluasinya.

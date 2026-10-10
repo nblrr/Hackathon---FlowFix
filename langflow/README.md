@@ -1,56 +1,81 @@
-# Langflow untuk aplikasi FlowFix
+# Langflow — FlowFix
 
-Hanya ada **empat flow aplikasi**, semuanya di folder [`application/`](application/). Impor ke Langflow hanya empat JSON berikut.
+Ada **empat flow aplikasi**, semuanya di folder [`application/`](application/). Impor ke Langflow hanya empat JSON ini.
 
-| Export yang digunakan | Nama setelah diimpor | Konfigurasi ID di `backend/.env` |
+| File | Nama flow | Variabel di `backend/.env` |
 | --- | --- | --- |
 | [submission-assistant.json](application/submission-assistant.json) | `FlowFix App - submission-assistant` | `LANGFLOW_SUBMISSION_ASSISTANT_ID` |
 | [document-precheck.json](application/document-precheck.json) | `FlowFix App - document-precheck` | `LANGFLOW_DOCUMENT_PRECHECK_ID` |
 | [reviewer-summary.json](application/reviewer-summary.json) | `FlowFix App - reviewer-summary` | `LANGFLOW_REVIEWER_SUMMARY_ID` |
 | [revision-planner.json](application/revision-planner.json) | `FlowFix App - revision-planner` | `LANGFLOW_REVISION_PLANNER_ID` |
 
-Export lama di tingkat atas dan tiga flow pendukung yang tidak digunakan sudah dihapus. Routing, pencatatan audit, dan tindakan aplikasi ditangani Laravel.
+## Isi folder
 
-## Arti folder
+- `application/` — 4 flow JSON siap impor. File ini **tanpa BOM**, langsung bisa diupload ke Langflow UI.
+- `schemas/` — referensi format JSON keluaran tiap flow. Bukan flow, tidak perlu diimpor. Validasi runtime ada di `backend/resources/schemas/`.
+- `examples/` — PDF sintetis untuk menguji ekstraksi dokumen.
+- `build_flows.py` — script untuk rebuild semua 4 flow dari awal via Langflow API (dipakai jika flow perlu dibuat ulang).
+- `DEPLOYMENT.md` — panduan lengkap deploy ulang ke instance Langflow baru.
 
-- `application/`: empat flow yang dapat diimpor ke Langflow.
-- `schemas/`: referensi format JSON keluaran flow; **bukan flow dan tidak perlu diimpor**. Validasi runtime aplikasi menggunakan [backend/resources/schemas/](../backend/resources/schemas/), termasuk usulan isian percakapan.
-- `examples/`: PDF sintetis untuk uji ekstraksi. Paket utama adalah [FlowFix-Test-Pack](../FlowFix-Test-Pack/), yang memiliki 24 kasus dan SOP simulasi.
+## Setup (9Router / LLM lokal)
 
-## Konfigurasi Gemini dan Langflow
+### Prasyarat
 
-1. Impor empat JSON dari `application/` ke Langflow. Jika sudah pernah diimpor, buka flow yang ada agar tidak membuat salinan tambahan.
-2. Pada `document-precheck`, pilih komponen **Agent**, provider Google Generative AI, model Gemini yang tersedia, dan isi API key Gemini.
-3. Pada tiga flow lainnya, konfigurasi provider/model Gemini dan API key pada komponen **Language Model**. Jika kolom API Key tersembunyi, buka parameter lanjutan. Simpan perubahan.
-4. Isi `LANGFLOW_API_KEY` di `backend/.env` dengan **API key Langflow**, bukan key Gemini. Isi empat variabel ID sesuai flow hasil impor. Gunakan `LANGFLOW_BASE_URL=http://127.0.0.1:7860` untuk instance lokal.
-5. Setelah mengubah konfigurasi Laravel, jalankan `php artisan config:clear` dari `backend/`.
+- Langflow 1.12+ berjalan di `http://127.0.0.1:7860`
+- LLM server OpenAI-compatible (9Router, LM Studio, Ollama, dll) di port 20128
+- **SSRF harus diizinkan** untuk LAN IP server LLM — jalankan Langflow dengan:
 
-Perubahan yang tersimpan di Langflow langsung berlaku untuk pemanggilan flow tersebut berikutnya. **Tidak perlu export ulang agar aplikasi menggunakan API key baru.** Export diperlukan hanya untuk memperbarui file JSON dalam repositori; file lokal tidak ikut berubah otomatis. Jangan memasukkan kredensial ke Git.
-
-Menghapus export di repositori tidak menghapus flow yang sebelumnya sudah diimpor ke instance Langflow. Daftar flow di instance tersebut dikelola terpisah.
-
-## Kontrak integrasi aplikasi
-
-```text
-React -> Laravel (PDF privat, ekstraksi, state, hak akses)
-      -> Langflow (analisis teks) -> model Gemini yang dikonfigurasi
+```powershell
+$env:LANGFLOW_SSRF_ALLOWED_HOSTS = "192.168.x.x"   # ganti dengan LAN IP kamu
+C:\Users\asus\langflow\.venv\Scripts\python.exe -m langflow run --host 127.0.0.1 --port 7860
 ```
 
-Laravel memanggil `POST /api/v1/run/{flow_id}` dengan input per komponen melalui `tweaks`. Pemetaan aktual ada di [backend/config/flowfix.php](../backend/config/flowfix.php). Jangan mengganti ID komponen pada export tanpa menyesuaikan pemetaan tersebut.
+### Upload flows
 
-| Flow | Input |
+**Opsi A — Upload JSON manual (paling cepat):**
+1. Buka `http://127.0.0.1:7860`
+2. Klik ikon upload (↑) di sebelah Projects
+3. Upload keempat file dari `langflow/application/`
+
+**Opsi B — Rebuild via script:**
+```powershell
+$env:LANGFLOW_API_KEY  = "<api-key-langflow>"
+$env:LLM_BASE_URL      = "http://<LAN-IP>:20128/v1"
+$env:LLM_API_KEY       = "<api-key-llm-server>"
+$env:LLM_MODEL         = "hacka"   # atau model lain yang tersedia
+python langflow/build_flows.py
+```
+
+### Update `backend/.env`
+
+Setelah flow berhasil diupload, isi variabel berikut di `backend/.env`:
+
+```env
+LANGFLOW_API_KEY=<api-key-dari-langflow-ui>
+LANGFLOW_SUBMISSION_ASSISTANT_ID=<id-flow>
+LANGFLOW_DOCUMENT_PRECHECK_ID=<id-flow>
+LANGFLOW_REVIEWER_SUMMARY_ID=<id-flow>
+LANGFLOW_REVISION_PLANNER_ID=<id-flow>
+```
+
+Setelah mengubah `.env`, jalankan `php artisan config:clear` dari folder `backend/`.
+
+## Kontrak integrasi
+
+```
+React → Laravel (PDF, ekstraksi, state, auth)
+      → Langflow (analisis teks) → LLM
+```
+
+Laravel memanggil `POST /api/v1/run/{flow_id}` dengan input via `tweaks`. Pemetaan komponen ada di `backend/config/flowfix.php`.
+
+| Flow | Input yang dikirim |
 | --- | --- |
-| Submission Assistant | `submission_state`, `user_message`, `sop_context` |
-| Document Pre-Check | `sop_requirements`, `form_data`, `document_contents` |
-| Reviewer Summary | `submission_data`, `document_contents`, `precheck_result` |
-| Revision Planner | `reviewer_comment`, `current_submission`, `updated_evidence`, `sop_rules` |
+| submission-assistant | `submission_state`, `user_message`, `sop_context` |
+| document-precheck | `sop_requirements`, `form_data`, `document_contents` |
+| reviewer-summary | `submission_data`, `document_contents`, `precheck_result` |
+| revision-planner | `reviewer_comment`, `current_submission`, `updated_evidence`, `sop_rules` |
 
-PDF diunggah ke Laravel, bukan ke node Langflow. [Ekstraktor lokal](../backend/scripts/extract_pdf.py) mempertahankan nomor halaman; Laravel menyusun dokumen beserta filename, document_type, content, versi, dan batas ekstraksi. Node `TextInput-Documents` menerima teks ini. OCR belum tersedia: scan tanpa teks memerlukan pemeriksaan manusia. Komponen upload PDF Langflow lama sudah tidak digunakan.
+PDF diunggah ke Laravel, diekstrak oleh `backend/scripts/extract_pdf.py`, lalu teksnya dikirim ke Langflow. **Bukan** diupload langsung ke node Langflow.
 
-Pre-check export saat ini mengembalikan `status`, `summary`, dan `findings` berisi `type`, `message`, `field`, `document`, `evidence`. Laravel mengadaptasinya secara eksplisit ke temuan aplikasi, menambahkan pemeriksaan deterministik dan pemeriksaan manusia. Ini bukan schema validator lama dengan `severity`/`issue`.
-
-Laravel memvalidasi keluaran sebelum digunakan. Saran AI tidak menyimpan koreksi, mengirim pengajuan, atau memberikan persetujuan otomatis.
-
-## Status verifikasi
-
-Endpoint versi instance lokal mengembalikan Langflow **1.12.1**. Pemeriksaan endpoint versi tidak membuktikan empat flow aplikasi berhasil dijalankan. Integrasi Gemini memerlukan API key, model, dan ID flow yang dikonfigurasi; keberhasilannya harus diuji tersendiri. Hasil palsu dalam tes terisolasi bukan bukti inferensi nyata.
+Laravel memvalidasi semua output AI terhadap schema sebelum digunakan. Saran AI tidak menyimpan koreksi atau memberikan persetujuan secara otomatis — keputusan tetap di tangan manusia.

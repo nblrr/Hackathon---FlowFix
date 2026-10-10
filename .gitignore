@@ -35,5 +35,8 @@ __pycache__/
 .venv/
 venv/
 
-# Script lokal (tidak perlu di-commit)
 export_and_push.py
+
+*.tsbuildinfo
+
+**/test-results/
